@@ -1,21 +1,37 @@
 import { useEffect, useState, useRef } from "react"
 import "./chat.css"
 import EmojiPicker from "emoji-picker-react"
+import { doc, onSnapshot } from "firebase/firestore"
+import { db } from "../../lib/firebase"
+import { useChatStore } from "../../lib/chatStore"
 
 const Chat = () => {
-const [open,setOpen] = useState(false)
-const [text,setText] = useState("")
+    const [chat, setChat] = useState();
+    const [open, setOpen] = useState(false);
+    const [text, setText] = useState("");
 
-const endRef = useRef(null)
+    const { chatId } = useChatStore()
 
-useEffect(()=>{
-    endRef.current?.scrollIntoView({behavior:"smooth"})
-},[])
+    const endRef = useRef(null);
 
-const handleEmoji = e =>{
-    setText((prev)=> prev + e.emoji);
-    setOpen(false)
-};
+    useEffect(() => {
+        endRef.current?.scrollIntoView({ behavior: "smooth" })
+    }, []);
+
+    useEffect(() => {
+        const unSub = onSnapshot(doc(db, "chats", chatId), (res) => {
+            setChat(res.data())
+        })
+        return () => {
+            unSub();
+        }
+    }, [chatId]);
+
+
+    const handleEmoji = e => {
+        setText((prev) => prev + e.emoji);
+        setOpen(false)
+    };
     return (
         <div className='chat'>
             <div className="top">
@@ -33,33 +49,17 @@ const handleEmoji = e =>{
                 </div>
             </div>
             <div className="center">
-                <div className="message own">
-                    <div className="texts">
-                        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Dolore suscipit omnis incidunt autem ut a quo facilis cum cupiditate obcaecati nam placeat reiciendis, nostrum praesentium ratione ipsa asperiores animi tempore?</p>
-                        <span>2 min ago</span>
+                {chat?.messages?.map(message => (
+                    <div className="message own" key={message?.createAt}>
+                        <div className="texts">
+                            {message.img &&
+                                <img src={message.img} alt="" />
+                            }
+                            <p>{message.text}</p>
+                            {/* <span>{message}</span> */}
+                        </div>
                     </div>
-                </div>
-                <div className="message">
-                    <img src="./avatar.png" alt="" />
-                    <div className="texts">
-                        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Dolore suscipit omnis incidunt autem ut a quo facilis cum cupiditate obcaecati nam placeat reiciendis, nostrum praesentium ratione ipsa asperiores animi tempore?</p>
-                        <span>2 min ago</span>
-                    </div>
-                </div>
-                <div className="message own">
-                    <div className="texts">
-                    <img src="https://panels-cdn.imgix.net/content/a~hytha_7a08fefe/121~Bolluck~s~Wilshire~4k.jpg?expires=1728508444399&fm=jpg&s=a33c1b9a5c14fb7adfe8a699d4555390" alt="" />
-                        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Dolore suscipit omnis incidunt autem ut a quo facilis cum cupiditate obcaecati nam placeat reiciendis, nostrum praesentium ratione ipsa asperiores animi tempore?</p>
-                        <span>2 min ago</span>
-                    </div>
-                </div>
-                <div className="message">
-                    <img src="./avatar.png" alt="" />
-                    <div className="texts">
-                        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Dolore suscipit omnis incidunt autem ut a quo facilis cum cupiditate obcaecati nam placeat reiciendis, nostrum praesentium ratione ipsa asperiores animi tempore?</p>
-                        <span>2 min ago</span>
-                    </div>
-                </div>
+                ))}
                 <div ref={endRef}></div>
             </div>
             <div className="bottom">
@@ -68,11 +68,11 @@ const handleEmoji = e =>{
                     <img src="./camera.png" alt="" />
                     <img src="./mic.png" alt="" />
                 </div>
-                <input type="text" placeholder="Type a message..." value={text} onChange={e=>setText(e.target.value)}/>
+                <input type="text" placeholder="Type a message..." value={text} onChange={e => setText(e.target.value)} />
                 <div className="emoji">
-                    <img src="./emoji.png" alt="" onClick={()=>setOpen((prev)=>!prev)}/>
+                    <img src="./emoji.png" alt="" onClick={() => setOpen((prev) => !prev)} />
                     <div className="picker">
-                    <EmojiPicker open={open} onEmojiClick={handleEmoji}/>
+                        <EmojiPicker open={open} onEmojiClick={handleEmoji} />
                     </div>
                 </div>
                 <button className="sendButton">Send</button>
